@@ -40,6 +40,7 @@ from ratarmountcore import (
     AESFile,
     AutoMountLayer,
     MountSource,
+    DereferenceLayer,
     FileVersionLayer,
     FolderMountSource,
     SQLiteIndexedTar,
@@ -593,6 +594,8 @@ class FuseMount(fuse.Operations):
             joinThreads()
 
         self.mountSource = FileVersionLayer(self.mountSource)
+        if options.get('followSymlinks'):
+            self.mountSource = DereferenceLayer(self.mountSource, mountPoint=mountPoint)
 
         self.rootFileInfo = FuseMount._makeMountPointFileInfoFromStats(os.stat(pathToMount[0]))
 
@@ -1406,6 +1409,10 @@ seeking capabilities when opening that file.
              'only becomes known after parsing the archive, for which an index is already created.')
 
     advancedGroup.add_argument(
+        '--follow-symlinks', action='store_true', default=False,
+        help='Show the symbolic link targets themselves instead of symbolic links.')
+
+    advancedGroup.add_argument(
         '--transform', type=str, nargs=2, metavar=('REGEX_PATTERN', 'REPLACEMENT'),
         help='Specify a regex pattern and a replacement string, which will be applied via Python\'s re module '
              'to the full paths of all archive files.')
@@ -1820,6 +1827,7 @@ def cli(rawArgs: Optional[List[str]] = None) -> None:
         maxCacheEntries              = args.union_mount_cache_max_entries,
         maxSecondsToCache            = args.union_mount_cache_timeout,
         indexMinimumFileCount        = args.index_minimum_file_count,
+        followSymlinks               = args.follow_symlinks,
         # fmt: on
     )
 
